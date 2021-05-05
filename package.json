@@ -4,7 +4,7 @@
   "description": "a telegram bot which creates joplin notes using received messages",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js --trace-warnings"
   },
   "keywords": [
     "telegram",
@@ -15,6 +15,11 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.21.1",
-    "telegraf": "^3.38.0"
+    "dotenv": "^9.0.0",
+    "telegraf": "^3.38.0",
+    "telegraf-inline-menu": "^6.2.1"
+  },
+  "engines": {
+    "node": ">=12"
   }
 }

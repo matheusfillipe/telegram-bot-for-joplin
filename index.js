@@ -1,30 +1,118 @@
-const { Telegraf } = require('telegraf')
+const {Telegraf} = require('telegraf');
+const {MenuTemplate, MenuMiddleware} = require('telegraf-inline-menu');
+const session = require('telegraf/session');
 const axios = require('axios');
+require('dotenv').config();
 
-const bot = new Telegraf("{telegram_token}")
-const request_url = 'http://localhost:41184/notes?token={joplin_token}'
+const telegram_token = process.env.TELEGRAM_BOT
+const joplin_token = process.env.JOPLIN_TOKEN
+const base_url = process.env.JOPLIN_URL
 
-bot.start((ctx) => {
+const bot = new Telegraf(telegram_token)
+bot.use(session())
+
+function makeUrl(endpoint, args) {
+  if (!args)
+    args = []
+  if (!Array.isArray(args))
+    args = Object.keys(args).map((key) => key + "=" + args[key])
+  const arg = args.length > 0 ? ("&" + args.join("&")) : ''
+  return base_url + endpoint + "?token=" + joplin_token + arg
+}
+async function fetchJson(endpoint, args) {
+  const url = makeUrl(endpoint, args)
+  const response = await axios.get(url)
+  return response.data
+}
+
+async function fetchAll(endpoint, args = []) {
+  let pageNum = 1;
+  let items = [];
+
+  let response = {}
+  do {
+    response = await fetchJson(endpoint, ["page=" + pageNum++, ...args]);
+    items.push(...response.items)
+  } while (response.has_more)
+  return items
+}
+
+async function post(endpoint, data) {
+  return await axios.post(makeUrl(endpoint), data).data
+}
+
+
+
+const menu = new MenuTemplate(() => 'Main Menu\n' + new Date().toISOString())
+menu.interact('I am excited!', 'a', {
+  do: async (ctx) => {
+    ctx.reply('As am I!')
+    return false
+  }
+}
+)
+const menuMiddleware = new MenuMiddleware('/', menu)
+
+bot.command('menu', (ctx) => {
+  menuMiddleware.replyToContext(ctx)
+})
+
+bot.start(async (ctx) => {
+  await ctx.setMyCommands([{command: "folders", description: "List all folders"}])
   ctx.reply('Welcome to your Joplin notebook!, just type /help for available commands 😊')
 })
 bot.help((ctx) => ctx.reply('Use /notes to gel all your notes, or send a message to create a note...'))
 bot.command('notes', async ctx => {
-  let notes = await axios.get(request_url)
-  ctx.reply(notes.data.map(p => p.title).join('\n'))
+  let notes = await fetchAll("notes")
+  if (notes.length == 0) {
+    ctx.reply("You have no notes yet!")
+    return
+  }
+  ctx.reply(notes.map(p => p.title).join('\n'))
+})
+bot.command('folders', async ctx => {
+  // TODO show tree properly
+  let folders = await fetchAll("folders")
+  if (folders.length == 0) {
+    ctx.reply("You have no folders yet!")
+    return
+  }
+  ctx.reply(folders.map(p => p.title).join('\n'))
+})
+bot.command('newfolder', async ctx => {
+  ctx.session.newfolder = true
+  ctx.reply("Tell me the name for the folder")
 })
 bot.on('text', async ctx => {
-  let note = new Note(ctx.message.text.slice(0, 25), ctx.message.text)
-  await axios.post(request_url, note)
-  ctx.reply('You created a new text note successfully!')
+  if (ctx.session?.newfolder) {
+    ctx.reply(`Adding  ${ctx.message.text}`)
+    post("folders", {title: ctx.message.text})
+    ctx.session.newfolder = false
+  }
+  if (ctx.session?.addnote) {
+    let note = new Note(ctx.message.text.slice(0, 25), ctx.message.text)
+    try {
+      await axios.post(base_url, note)
+      ctx.reply('You created a new text note successfully!')
+    } catch {
+      ctx.reply("Some error occurred 😭")
+    }
+    ctx.session.addnote = false
+  }
 })
 bot.on('photo', async ctx => {
   let caption = ctx.message.caption ? ctx.message.caption : 'No title'
   let note = new Note(caption, caption, ctx.message.photo)
   await note.setImageData(ctx)
-  await axios.post(request_url, note);
+  await axios.post(base_url, note);
   ctx.reply('You created a new image note successfully!')
 })
+
+bot.use(menuMiddleware)
 bot.launch()
+// Enable graceful stop
+process.once('SIGINT', () => bot.stop('SIGINT'))
+process.once('SIGTERM', () => bot.stop('SIGTERM'))
 
 class Note {
   constructor(title, body) {
@@ -38,8 +126,15 @@ class Note {
       // get largest possible
       let largest = ctx.message.photo.reduce((prev, current) => (+prev.width > +current.width) ? prev : current)
       let image_url = await ctx.telegram.getFileLink(largest.file_id)
-      let image_result = await axios.get(image_url, { responseType: 'arraybuffer' });
+      let image_result = await axios.get(image_url, {responseType: 'arraybuffer'});
       this.image_data_url = "data:image/png;base64," + Buffer.from(image_result.data).toString('base64');
     }
+  }
+}
+
+class Folder {
+  constructor(title) {
+    this.title = title
+    this.parent_id = 0
   }
 }
