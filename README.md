@@ -15,3 +15,4 @@ This is a simple telegram bot to retrieve or create notes from Joplin notepad vi
     ```
 - Start joplin desktop app or `joplin --profile ~/.config/joplin/ server start`
 - run `node start`
+- Check your user_id and add it to .env. Run the bot again.
