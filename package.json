@@ -1,17 +1,17 @@
 {
   "name": "joplin-telegram-bot",
   "version": "0.0.1",
-  "description": "a telegram bot which creates joplin notes using received messages",
-  "main": "index.js",
+  "description": "A telegram bot which creates joplin notes using received messages",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node index.js --trace-warnings"
+    "start": "node src/index.js --trace-warnings"
   },
   "keywords": [
     "telegram",
     "bot",
     "joplin"
   ],
-  "author": "Hasan Gök",
+  "author": "Hasan Gök, Matheus Fillipe",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.21.1",
