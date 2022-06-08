@@ -14,10 +14,10 @@
   "author": "Hasan Gök, Matheus Fillipe",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.21.1",
+    "axios": "^0.21.2",
     "dotenv": "^9.0.0",
     "telegraf": "^3.38.0",
-    "telegraf-inline-menu": "^6.2.1"
+    "telegraf-inline-menu": "^6.3.0"
   },
   "engines": {
     "node": ">=12"
