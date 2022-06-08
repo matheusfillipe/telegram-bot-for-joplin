@@ -14,5 +14,5 @@ This is a simple telegram bot to retrieve or create notes from Joplin notepad vi
     sqlite3 ~/.config/joplin/database.sqlite 'select * from settings where key="api.token";'
     ```
 - Start joplin desktop app or `joplin --profile ~/.config/joplin/ server start`
-- run `node start`
+- run `npm start`
 - Check your user_id and add it to .env. Run the bot again.

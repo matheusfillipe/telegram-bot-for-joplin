@@ -2,9 +2,11 @@ const axios = require('axios');
 const {exec} = require("child_process");
 
 class Note {
-  constructor(title, body) {
+  constructor(title, body, parent_id=null, author=null) {
     this.title = title
     this.body = body
+    this.parent_id = parent_id
+    this.author = author
     this.image_data_url = null
   }
 
@@ -12,10 +14,17 @@ class Note {
     if (ctx.message.photo) {
       // get largest possible
       let largest = ctx.message.photo.reduce((prev, current) => (+prev.width > +current.width) ? prev : current)
-      let image_url = await ctx.telegram.getFileLink(largest.file_id)
+      let image_url = await ctx.telegram.getfilelink(largest.file_id)
       let image_result = await axios.get(image_url, {responseType: 'arraybuffer'});
       this.image_data_url = "data:image/png;base64," + Buffer.from(image_result.data).toString('base64');
     }
+  }
+}
+
+class Folder {
+  constructor(title, parent_id = null){
+    this.title = title
+    this.parent_id = parent_id
   }
 }
 
@@ -66,8 +75,19 @@ class Joplin {
     return items
   }
 
+
   async post(endpoint, data) {
     return await axios.post(this.makeUrl(endpoint), data).data
   }
+  async put(endpoint, data) {
+    return await axios.put(this.makeUrl(endpoint), data).data
+  }
+  
+  async delete(endpoint){
+    return await axios.delete(this.makeUrl(endpoint)).data
+  }
+  async get(endpoint){
+    return await axios.get(this.makeUrl(endpoint)).data
+  }
 }
-module.exports = {Note, Joplin}
+module.exports = {Note, Folder, Joplin}
